@@ -34,7 +34,7 @@ Instructions and scripts to set up a Bob Ross auto-playing Raspberry Pi.
 18. Set to auto-mount:  
     $ sudo mkdir /media/usb  
     $ sudo su  
-    # echo "UUID=<UUID_OF_USB_DRIVE> /media/usb vfat defaults,ro 0 0" >> /etc/fstab  
+    # echo "UUID=WHATEVER_YOUR_DRIVE_UUID_IS /media/usb vfat defaults,ro 0 0" >> /etc/fstab  
     # reboot
 19. Import media library into Kodi.
 20. Copy 'autoexec.py' into '/home/pi/.kodi/userdata/'
