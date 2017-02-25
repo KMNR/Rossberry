@@ -15,15 +15,20 @@
 #     http://kodi.wiki/view/autoexec.py
 #
 
-import xbmc
+if __name__ != '__main__':
+    import xbmc
+
 import os
 import random
 import time
+import itertools
+import pprint
 random.seed(time.time())
 
 
-PLAYLIST_FILEPATH = "/home/pi/.kodi/userdata/playlists/video/randomized.m3u"
-VIDEO_DIRECTORY = "/media/usb"
+PLAYLIST_FILEPATH = "/opt/retropie/configs/ports/kodi/userdata/playlists/video/randomized.m3u"
+VIDEO_DIRECTORY =        "/media/rossberry/TV"
+TRANSITIONS_DIRECTORY =   "/media/rossberry/Transitions"
 RECOGNIZED_MEDIA_EXTENSIONS = [
     '.avi',
     '.mkv',
@@ -31,19 +36,42 @@ RECOGNIZED_MEDIA_EXTENSIONS = [
 ]
 
 
-def create_playlist(at, with_files_in):
-    # If the playlist already exists, just exit
-    if os.path.exists(at):
-        return
+def create_playlist(at, with_files_in, transitions_in):
+    media_files = find_media_files(with_files_in)
+    transition_files = find_media_files(transitions_in)
 
-    # Verify the directory into which the playlist is stored exists
-    playlist_destination_directory = os.path.dirname(at)
-    if not os.path.exists(playlist_destination_directory):
-        os.makedirs(playlist_destination_directory)
+    # Shuffle the file paths
+    random.shuffle(media_files)
 
-    # Recursively walk through the directory given.
+    # Interweave transition videos between each media file
+    playlist = []
+    transition_cycle = itertools.cycle(transition_files)
+    for path in media_files:
+        playlist.append(path)
+        playlist.append(next(transition_cycle))
+
+    # print some helpful stuff if this script is called from the command line
+    if __name__ == '__main__':
+        line_break_fmt = '{bookend}: {title} :{bookend}'
+        print(line_break_fmt.format(bookend='='*30,
+                                    title='TV'))
+        pprint.pprint(media_files)
+        print(line_break_fmt.format(bookend='='*30,
+                                    title='Transitions'))
+        pprint.pprint(transition_files)
+        print(line_break_fmt.format(bookend='='*30,
+                                    title='Interweaved'))
+        pprint.pprint(playlist)
+
+    # Write out filepaths to a playlist file
+    with open(at, 'w') as playlist_file:
+        playlist_file.write('\n'.join(playlist))
+
+
+# Recursively walk through the directory given.
+def find_media_files(directory):
     media_files = []
-    for directory, _, filenames in os.walk(with_files_in):
+    for directory, _, filenames in os.walk(directory):
         # Iterate over files in 'directory'
         for f in filenames:
             # Extract the extension from the filename
@@ -52,21 +80,17 @@ def create_playlist(at, with_files_in):
                 # The current file is a recognized media file
                 absolute_path = os.path.join(directory, f)
                 media_files.append(absolute_path)
-
-    # Shuffle the file paths
-    random.shuffle(media_files)
-
-    # Write out filepaths to a playlist file
-    with open(at, 'w') as playlist_file:
-        playlist_file.write('\n'.join(media_files))
-
+    return media_files
 
 
 create_playlist(at=PLAYLIST_FILEPATH,
-                with_files_in=VIDEO_DIRECTORY)
+                with_files_in=VIDEO_DIRECTORY,
+                transitions_in=TRANSITIONS_DIRECTORY)
 
 # Let kodi (previously named XBMC) do it's shit
-xbmc.executebuiltin("PlayMedia({playlist_filepath})".format(
-    playlist_filepath=PLAYLIST_FILEPATH))
-xbmc.executebuiltin("PlayerControl(RandomOn)") 
-xbmc.executebuiltin("PlayerControl(RepeatAll)")
+if __name__ != '__main__':
+    xbmc.executebuiltin("PlayMedia({playlist_filepath})".format(
+        playlist_filepath=PLAYLIST_FILEPATH))
+    xbmc.executebuiltin("PlayerControl(RandomOn)") 
+    xbmc.executebuiltin("PlayerControl(RepeatAll)")
+
